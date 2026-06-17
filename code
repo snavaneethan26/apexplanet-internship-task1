@@ -1,0 +1,74 @@
+import pandas as pd
+import numpy as np
+
+df = pd.read_excel("ApexPlanet_DataAnalytics_Dataset.xlsx")
+print("Original Shape:", df.shape)
+
+print("\nMissing Values:")
+print(df.isnull().sum())
+
+print("\nDuplicate Rows:", df.duplicated().sum())
+
+print("\nData Types:")
+print(df.dtypes)
+
+df.drop_duplicates(inplace=True)
+
+df["Age"] = df["Age"].fillna(df["Age"].median())
+
+df["City"] = df["City"].fillna(df["City"].mode()[0])
+
+df["Order_Date"] = pd.to_datetime(df["Order_Date"])
+
+text_columns = [
+    "Customer_Name",
+    "Gender",
+    "City",
+    "Product",
+    "Category"
+]
+
+for col in text_columns:
+    df[col] = df[col].astype(str).str.strip().str.title()
+
+df["Order_Year"] = df["Order_Date"].dt.year
+df["Order_Month"] = df["Order_Date"].dt.month
+df["Order_Day"] = df["Order_Date"].dt.day
+
+df["Month_Name"] = df["Order_Date"].dt.month_name()
+
+df["Age_Group"] = pd.cut(
+    df["Age"],
+    bins=[0, 25, 35, 50, 100],
+    labels=["18-25", "26-35", "36-50", "50+"]
+)
+
+df["Sales_Category"] = pd.cut(
+    df["Total_Sales"],
+    bins=[0, 50000, 150000, 300000, np.inf],
+    labels=["Low", "Medium", "High", "Very High"]
+)
+
+numeric_cols = ["Age", "Quantity", "Unit_Price", "Total_Sales"]
+
+for col in numeric_cols:
+    Q1 = df[col].quantile(0.25)
+    Q3 = df[col].quantile(0.75)
+    IQR = Q3 - Q1
+
+    lower = Q1 - 1.5 * IQR
+    upper = Q3 + 1.5 * IQR
+
+    outliers = df[(df[col] < lower) | (df[col] > upper)]
+
+    print(f"{col} Outliers: {len(outliers)}")
+
+print("\nFinal Missing Values:")
+print(df.isnull().sum())
+
+print("\nFinal Shape:")
+print(df.shape)
+
+df.to_csv("Cleaned_Sales_Dataset.csv", index=False)
+
+print("\nCleaned dataset saved successfully!")
